@@ -30,9 +30,10 @@ export class ContactsService {
     });
 
     if (resultByPn.length === 0 && resultByEm.length === 0) {
+      console.log('gere inside we are');
       const result = await this.prisma.contact.create({
         data: {
-          Id: count,
+          Id: count + 1,
           emailId: createContactDto.email,
           phoneNumber: createContactDto.phoneNumber,
           linkedId: null,
@@ -127,7 +128,7 @@ export class ContactsService {
       }
       const result = await this.prisma.contact.create({
         data: {
-          Id: count,
+          Id: count + 1,
           emailId: createContactDto.email,
           phoneNumber: createContactDto.phoneNumber,
           linkedId: primaryResult[0].Id,

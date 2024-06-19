@@ -15,7 +15,7 @@ import { UpdateContactDto } from './dto/update-contact.dto';
 export class ContactsController {
   constructor(private readonly contactsService: ContactsService) {}
 
-  @Post()
+  @Post('/identify')
   async create(@Body() createContactDto: CreateContactDto) {
     return await this.contactsService.create(createContactDto);
   }

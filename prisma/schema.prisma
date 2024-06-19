@@ -11,15 +11,15 @@ datasource db {
 }
 
 model Contact {
-  id            Int      @id @default(autoincrement())
+  id            Int       @id @default(autoincrement())
   Id            Int
   phoneNumber   String
   emailId       String
   linkedId      Int?
   linPrecedence String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  deletedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime? @updatedAt
 
   @@unique([phoneNumber, emailId])
 }
