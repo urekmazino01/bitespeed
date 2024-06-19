@@ -17,6 +17,18 @@ export class ContactsService {
         ],
       },
     });
+    const secondaryResult = await this.prisma.contact.findMany({
+      where: {
+        OR: [
+          { emailId: createContactDto.email },
+          { phoneNumber: createContactDto.phoneNumber },
+        ],
+      },
+      orderBy:{
+        createdAt:'asc'
+      }
+    })
+
     const resultByPn = await this.prisma.contact.findMany({
       where: {
         phoneNumber: createContactDto.phoneNumber,
@@ -33,7 +45,6 @@ export class ContactsService {
       console.log('gere inside we are');
       const result = await this.prisma.contact.create({
         data: {
-          Id: count + 1,
           emailId: createContactDto.email,
           phoneNumber: createContactDto.phoneNumber,
           linkedId: null,
@@ -53,28 +64,28 @@ export class ContactsService {
           createdAt: 'asc',
         },
       });
-      let emails = [];
-      let phoneNumbers = [];
-      let secondaryContactIds = [];
+      let emails = new Set();
+      let phoneNumbers = new Set();
+      let secondaryContactIds = new Set();
       let primaryId;
 
       for (let ele of allContacts) {
-        emails.push(ele.emailId);
-        phoneNumbers.push(ele.phoneNumber);
+        emails.add(ele.emailId);
+        phoneNumbers.add(ele.phoneNumber);
 
         if (ele.linPrecedence !== 'primary') {
-          secondaryContactIds.push(ele.linkedId);
+          secondaryContactIds.add(ele.id);
         } else {
-          primaryId = ele.Id;
+          primaryId = ele.id;
         }
       }
 
       return {
         contact: {
           primaryContactId: primaryId,
-          emails: emails,
-          phoneNumbers: phoneNumbers,
-          secondaryContactIds: secondaryContactIds,
+          emails: [...emails],
+          phoneNumbers: [...phoneNumbers],
+          secondaryContactIds: [...secondaryContactIds],
         },
       };
     } else {
@@ -84,16 +95,12 @@ export class ContactsService {
         resultByPn[0].linPrecedence === 'primary' &&
         resultByEm[0].linPrecedence === 'primary'
       ) {
-        if (
-          resultByPn[0].linPrecedence === 'primary' &&
-          resultByEm[0].linPrecedence === 'primary'
-        ) {
           await this.prisma.contact.update({
             where: {
               id: resultByPn[0].id,
             },
             data: {
-              linkedId: resultByEm[0]?.Id,
+              linkedId: resultByEm[0]?.id,
               linPrecedence: 'secondary',
             },
           });
@@ -115,27 +122,25 @@ export class ContactsService {
             phoneNumbers.push(ele.phoneNumber);
 
             if (ele.linPrecedence !== 'primary') {
-              secondaryContactIds.push(ele.linkedId);
+              secondaryContactIds.push(ele.id);
             }
           }
 
           return {
             contact: {
-              primaryContactId: resultByPn[0].id,
+              primaryContactId: resultByEm[0].id,
               emails: emails,
               phoneNumbers: phoneNumbers,
               secondaryContactIds: secondaryContactIds,
             },
           };
-        }
       }
       console.log('inisde herere');
       const result = await this.prisma.contact.create({
         data: {
-          Id: count + 1,
           emailId: createContactDto.email,
           phoneNumber: createContactDto.phoneNumber,
-          linkedId: primaryResult[0]?.Id,
+          linkedId: primaryResult[0]?.id ? primaryResult[0].id :secondaryResult[0].linkedId ,
           linPrecedence: 'secondary',
           deletedAt: null,
         },
@@ -152,25 +157,28 @@ export class ContactsService {
           createdAt: 'asc',
         },
       });
-      let emails = [];
-      let phoneNumbers = [];
-      let secondaryContactIds = [];
+      let emails = new Set();
+      let phoneNumbers = new Set();
+      let secondaryContactIds = new Set();
+      let primaryId;
 
       for (let ele of allContacts) {
-        emails.push(ele.emailId);
-        phoneNumbers.push(ele.phoneNumber);
+        emails.add(ele.emailId);
+        phoneNumbers.add(ele.phoneNumber);
 
         if (ele.linPrecedence !== 'primary') {
-          secondaryContactIds.push(ele.linkedId);
+          secondaryContactIds.add(ele.id);
+        }else{
+          primaryId=ele.id
         }
       }
 
       return {
         contact: {
-          primaryContactId: resultByPn[0].id,
-          emails: emails,
-          phoneNumbers: phoneNumbers,
-          secondaryContactIds: secondaryContactIds,
+          primaryContactId: primaryId ? primaryId : secondaryResult[0].linkedId,
+          emails: [...emails],
+          phoneNumbers: [...phoneNumbers],
+          secondaryContactIds: [...secondaryContactIds],
         },
       };
     }

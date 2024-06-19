@@ -17,6 +17,7 @@ export class ContactsController {
 
   @Post('/identify')
   async create(@Body() createContactDto: CreateContactDto) {
+    console.log('Hello inside')
     return await this.contactsService.create(createContactDto);
   }
 
