@@ -11,13 +11,12 @@ import { ContactsService } from './contacts.service';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { UpdateContactDto } from './dto/update-contact.dto';
 
-@Controller('contacts')
+@Controller('identify')
 export class ContactsController {
   constructor(private readonly contactsService: ContactsService) {}
 
-  @Post('/identify')
+  @Post('')
   async create(@Body() createContactDto: CreateContactDto) {
-    console.log('Hello inside')
     return await this.contactsService.create(createContactDto);
   }
 
