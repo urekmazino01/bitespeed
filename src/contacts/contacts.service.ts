@@ -56,6 +56,7 @@ export class ContactsService {
       let emails = [];
       let phoneNumbers = [];
       let secondaryContactIds = [];
+      let primaryId;
 
       for (let ele of allContacts) {
         emails.push(ele.emailId);
@@ -63,12 +64,14 @@ export class ContactsService {
 
         if (ele.linPrecedence !== 'primary') {
           secondaryContactIds.push(ele.linkedId);
+        } else {
+          primaryId = ele.Id;
         }
       }
 
       return {
         contact: {
-          primaryContactId: resultByPn[0].id,
+          primaryContactId: primaryId,
           emails: emails,
           phoneNumbers: phoneNumbers,
           secondaryContactIds: secondaryContactIds,
@@ -90,7 +93,7 @@ export class ContactsService {
               id: resultByPn[0].id,
             },
             data: {
-              linkedId: resultByEm[0].Id,
+              linkedId: resultByEm[0]?.Id,
               linPrecedence: 'secondary',
             },
           });
@@ -126,12 +129,13 @@ export class ContactsService {
           };
         }
       }
+      console.log('inisde herere');
       const result = await this.prisma.contact.create({
         data: {
           Id: count + 1,
           emailId: createContactDto.email,
           phoneNumber: createContactDto.phoneNumber,
-          linkedId: primaryResult[0].Id,
+          linkedId: primaryResult[0]?.Id,
           linPrecedence: 'secondary',
           deletedAt: null,
         },
