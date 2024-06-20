@@ -24,12 +24,10 @@ export class ContactsService {
           { phoneNumber: createContactDto.phoneNumber },
         ],
       },
-      orderBy:{
-        createdAt:'asc'
-      }
-    })
-
-    console.log('secondaryResult',secondaryResult)
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
 
     const resultByPn = await this.prisma.contact.findMany({
       where: {
@@ -44,7 +42,6 @@ export class ContactsService {
     });
 
     if (resultByPn.length === 0 && resultByEm.length === 0) {
-      console.log('gere inside we are');
       const result = await this.prisma.contact.create({
         data: {
           emailId: createContactDto.email,
@@ -97,59 +94,80 @@ export class ContactsService {
         resultByPn[0].linPrecedence === 'primary' &&
         resultByEm[0].linPrecedence === 'primary'
       ) {
-          await this.prisma.contact.update({
-            where: {
-              id: resultByPn[0].id,
-            },
-            data: {
-              linkedId: resultByEm[0]?.id,
-              linPrecedence: 'secondary',
-            },
-          });
+        await this.prisma.contact.update({
+          where: {
+            id: resultByPn[0].id,
+          },
+          data: {
+            linkedId: resultByEm[0]?.id,
+            linPrecedence: 'secondary',
+          },
+        });
 
-          const allContacts = await this.prisma.contact.findMany({
-            where: {
-              linkedId: resultByEm[0]?.id,
-            },
-          });
-          let emails = [];
-          let phoneNumbers = [];
-          let secondaryContactIds = [];
+        const allContacts = await this.prisma.contact.findMany({
+          where: {
+            linkedId: resultByEm[0]?.id,
+          },
+        });
+        let emails = new Set();
+        let phoneNumbers = new Set();
+        let secondaryContactIds = new Set();
+        let primaryId;
 
-          for (let ele of allContacts) {
-            emails.push(ele.emailId);
-            phoneNumbers.push(ele.phoneNumber);
+        for (let ele of allContacts) {
+          emails.add(ele.emailId);
+          phoneNumbers.add(ele.phoneNumber);
 
-            if (ele.linPrecedence !== 'primary') {
-              secondaryContactIds.push(ele.id);
-            }
+          if (ele.linPrecedence !== 'primary') {
+            secondaryContactIds.add(ele.id);
+          } else {
+            primaryId = ele?.id;
           }
+        }
 
-          return {
-            contact: {
-              primaryContactId: resultByEm[0].id,
-              emails: emails,
-              phoneNumbers: phoneNumbers,
-              secondaryContactIds: secondaryContactIds,
-            },
-          };
+        const parentResult = await this.prisma.contact.findMany({
+          where: {
+            id: primaryId
+              ? primaryId
+              : secondaryResult[0]?.linkedId
+                ? secondaryResult[0]?.linkedId
+                : secondaryResult[0]?.id,
+          },
+        });
+
+        for (let ele of parentResult) {
+          emails.add(ele.emailId);
+          phoneNumbers.add(ele.phoneNumber);
+        }
+
+        return {
+          contact: {
+            primaryContactId: resultByEm[0].id,
+            emails: [...emails],
+            phoneNumbers: [...phoneNumbers],
+            secondaryContactIds: [...secondaryContactIds],
+          },
+        };
       }
       const result = await this.prisma.contact.create({
         data: {
           emailId: createContactDto?.email,
           phoneNumber: createContactDto?.phoneNumber,
-          linkedId: primaryResult[0]?.id ? primaryResult[0]?.id :secondaryResult[0]?.linkedId ,
+          linkedId: primaryResult[0]?.id
+            ? primaryResult[0]?.id
+            : secondaryResult[0]?.linkedId,
           linPrecedence: 'secondary',
           deletedAt: null,
         },
       });
 
       const allContacts = await this.prisma.contact.findMany({
-        where:{
-          linkedId: secondaryResult[0]?.linkedId ? secondaryResult[0]?.linkedId : secondaryResult[0].id,
-        }
-      })
-      console.log('allcontacts',allContacts)
+        where: {
+          linkedId: secondaryResult[0]?.linkedId
+            ? secondaryResult[0]?.linkedId
+            : secondaryResult[0].id,
+        },
+      });
       let emails = new Set();
       let phoneNumbers = new Set();
       let secondaryContactIds = new Set();
@@ -161,18 +179,22 @@ export class ContactsService {
 
         if (ele.linPrecedence !== 'primary') {
           secondaryContactIds.add(ele?.id);
-        }else{
-          primaryId=ele?.id
+        } else {
+          primaryId = ele?.id;
         }
       }
 
       const parentResult = await this.prisma.contact.findMany({
-        where:{
-          id: primaryId ? primaryId : (secondaryResult[0]?.linkedId ? secondaryResult[0]?.linkedId : secondaryResult[0]?.id),
-        }
-      })
+        where: {
+          id: primaryId
+            ? primaryId
+            : secondaryResult[0]?.linkedId
+              ? secondaryResult[0]?.linkedId
+              : secondaryResult[0]?.id,
+        },
+      });
 
-      for(let ele of parentResult){
+      for (let ele of parentResult) {
         emails.add(ele.emailId);
         phoneNumbers.add(ele.phoneNumber);
       }
@@ -186,21 +208,5 @@ export class ContactsService {
         },
       };
     }
-  }
-
-  findAll() {
-    return `This action returns all contacts`;
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} contact`;
-  }
-
-  update(id: number, updateContactDto: UpdateContactDto) {
-    return `This action updates a #${id} contact`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} contact`;
   }
 }
