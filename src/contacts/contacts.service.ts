@@ -33,11 +33,17 @@ export class ContactsService {
       where: {
         phoneNumber: createContactDto.phoneNumber,
       },
+      orderBy: {
+        createdAt: 'asc',
+      },
     });
 
     const resultByEm = await this.prisma.contact.findMany({
       where: {
         emailId: createContactDto.email,
+      },
+      orderBy: {
+        createdAt: 'asc',
       },
     });
 
@@ -89,24 +95,47 @@ export class ContactsService {
       };
     } else {
       if (
-        resultByPn.length === 1 &&
-        resultByEm.length === 1 &&
-        resultByPn[0].linPrecedence === 'primary' &&
-        resultByEm[0].linPrecedence === 'primary'
+        resultByPn.length >= 1 &&
+        resultByEm.length >= 1 &&
+        (resultByPn[0]?.linPrecedence === 'primary' ||
+          resultByEm[0]?.linPrecedence === 'primary')
       ) {
+        const updateContacts = await this.prisma.contact.findMany({
+          where: {
+            OR: [
+              { emailId: createContactDto.email },
+              { phoneNumber: createContactDto.phoneNumber },
+            ],
+          },
+          orderBy: {
+            createdAt: 'asc',
+          },
+        });
+        const primaryContact = await this.prisma.contact.findMany({
+          where: {
+            linPrecedence: 'secondary',
+            OR: [
+              { emailId: createContactDto.email },
+              { phoneNumber: createContactDto.phoneNumber },
+            ],
+          },
+        });
+        console.log('here iside i am  ');
         await this.prisma.contact.update({
           where: {
-            id: resultByPn[0].id,
+            id: updateContacts[0]?.id,
           },
           data: {
-            linkedId: resultByEm[0]?.id,
+            linkedId: primaryContact[0]?.linkedId
+              ? primaryContact[0]?.linkedId
+              : resultByEm[0].id,
             linPrecedence: 'secondary',
           },
         });
 
         const allContacts = await this.prisma.contact.findMany({
           where: {
-            linkedId: resultByEm[0]?.id,
+            linkedId: primaryContact[0]?.linkedId,
           },
         });
         let emails = new Set();
@@ -142,7 +171,7 @@ export class ContactsService {
 
         return {
           contact: {
-            primaryContactId: resultByEm[0].id,
+            primaryContactId: resultByEm[0]?.id,
             emails: [...emails],
             phoneNumbers: [...phoneNumbers],
             secondaryContactIds: [...secondaryContactIds],
@@ -168,6 +197,7 @@ export class ContactsService {
             : secondaryResult[0].id,
         },
       });
+
       let emails = new Set();
       let phoneNumbers = new Set();
       let secondaryContactIds = new Set();
@@ -209,4 +239,107 @@ export class ContactsService {
       };
     }
   }
+
+  // async create(createContactDto: CreateContactDto) {
+  //   const { email, phoneNumber } = createContactDto;
+
+  //   // Fetch all contacts with either the given email or phone number
+  //   const contacts = await this.prisma.contact.findMany({
+  //     where: {
+  //       OR: [{ emailId: email }, { phoneNumber: phoneNumber }],
+  //     },
+  //     orderBy: {
+  //       createdAt: 'asc',
+  //     },
+  //   });
+
+  //   // If no contacts are found, create a new primary contact
+  //   if (contacts.length === 0) {
+  //     const newContact = await this.prisma.contact.create({
+  //       data: {
+  //         emailId: email,
+  //         phoneNumber: phoneNumber,
+  //         linkedId: null,
+  //         linPrecedence: 'primary',
+  //         deletedAt: null,
+  //       },
+  //     });
+
+  //     return {
+  //       contact: {
+  //         primaryContactId: newContact.id,
+  //         emails: [email],
+  //         phoneNumbers: [phoneNumber],
+  //         secondaryContactIds: [],
+  //       },
+  //     };
+  //   }
+
+  //   // Check if there is a primary contact in the existing contacts
+  //   const primaryContact = contacts.find(
+  //     (contact) => contact.linPrecedence === 'primary',
+  //   );
+  //   let primaryId = primaryContact ? primaryContact.id : contacts[0].id;
+
+  //   // If no primary contact, set the first contact as primary
+  //   if (!primaryContact) {
+  //     await this.prisma.contact.update({
+  //       where: { id: primaryId },
+  //       data: { linPrecedence: 'primary' },
+  //     });
+  //   }
+
+  //   // Update linkedId and linPrecedence for new secondary contact if necessary
+  //   const existingContact = contacts.find(
+  //     (contact) =>
+  //       contact.emailId === email || contact.phoneNumber === phoneNumber,
+  //   );
+  //   if (!existingContact) {
+  //     await this.prisma.contact.create({
+  //       data: {
+  //         emailId: email,
+  //         phoneNumber: phoneNumber,
+  //         linkedId: primaryId,
+  //         linPrecedence: 'secondary',
+  //         deletedAt: null,
+  //       },
+  //     });
+  //   } else if (
+  //     existingContact.linPrecedence === 'primary' &&
+  //     existingContact.phoneNumber === phoneNumber
+  //   ) {
+  //     await this.prisma.contact.update({
+  //       where: { id: existingContact.id },
+  //       data: { linkedId: primaryId, linPrecedence: 'secondary' },
+  //     });
+  //   }
+
+  //   // Gather all unique emails and phone numbers linked to the primary contact
+  //   const allRelatedContacts = await this.prisma.contact.findMany({
+  //     where: {
+  //       OR: [{ id: primaryId }, { linkedId: primaryId }],
+  //     },
+  //   });
+
+  //   const emails = new Set(
+  //     allRelatedContacts.map((contact) => contact.emailId),
+  //   );
+  //   const phoneNumbers = new Set(
+  //     allRelatedContacts.map((contact) => contact.phoneNumber),
+  //   );
+  //   const secondaryContactIds = new Set(
+  //     allRelatedContacts
+  //       .filter((contact) => contact.linPrecedence === 'secondary')
+  //       .map((contact) => contact.id),
+  //   );
+
+  //   return {
+  //     contact: {
+  //       primaryContactId: primaryId,
+  //       emails: [...emails],
+  //       phoneNumbers: [...phoneNumbers],
+  //       secondaryContactIds: [...secondaryContactIds],
+  //     },
+  //   };
+  // }
 }
