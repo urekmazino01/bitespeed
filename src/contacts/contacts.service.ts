@@ -137,7 +137,7 @@ export class ContactsService {
   
         return {
           contact: {
-            primaryContactId: primaryId,
+            primaryContactId: contactUpdate[contactUpdate.length-1].id,
             emails: [...emails],
             phoneNumbers: [...phoneNumbers],
             secondaryContactIds: [...secondaryContactIds],
@@ -152,7 +152,7 @@ export class ContactsService {
           data:{
             emailId:createContactDto.email,
         phoneNumber:createContactDto.phoneNumber,
-        linkedId: primaryContact.id,
+        linkedId: linkedIdArr[0],
         linPrecedence: 'secondary',
         deletedAt: null,
           }
