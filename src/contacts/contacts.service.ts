@@ -31,6 +31,7 @@ export class ContactsService {
           }
         }
       }
+      linkedIdArr.sort()
 
   if(contacts.length === 0){
     const newContact =await this.prisma.contact.create({
