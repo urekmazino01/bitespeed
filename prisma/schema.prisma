@@ -19,6 +19,4 @@ model Contact {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   deletedAt     DateTime? @updatedAt
-
-  @@unique([phoneNumber, emailId])
 }
